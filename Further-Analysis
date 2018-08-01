@@ -108,4 +108,12 @@
     jenson_markowitz = exp_markowitz - (0.01 + (means[1] - 0.01)*beta_markowitz)
     jenson_markowitz
     
-    
+#FAMA's Decomposition:
+#Overall Performance -> Ra_bar - Rf = Ra_bar - Ra'_bar + Ra'_bar - Rf
+
+sim_noss_dash = 0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim)
+Return_Selectivity = exp_noss_sim - sim_noss_dash
+Return_Risk = sim_noss_dash - 0.01
+
+exp_noss_sim - 0.01 == Return_Selectivity + Return_Risk
+  
