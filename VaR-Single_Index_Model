@@ -1,0 +1,22 @@
+library(MASS)
+set.seed(0)
+
+change <- rep(NA,10000)
+df <- var(returns_sim[ ,1:length(x_sim_no_ss)])
+df[df < 0] <- 0
+
+daily_volatility <- sqrt(df) / sqrt(dim(returns_sim)[1])
+
+for(i in 1:10000){
+  samples <- mvrnorm(1, rep(0,length(x_sim_no_ss)), daily_volatility^2)
+  change[i] <- x_sim_no_ss %*% samples
+}
+
+hist(change, breaks = 25)
+
+five_day_delta_p <-5 * change
+
+percent_lost <- quantile(five_day_delta_p,.01)
+
+amount_lost <- percent_lost * 1000000 
+amount_lost
