@@ -1,0 +1,111 @@
+
+#Sharpe Ratios
+  #single index
+  sharpe_sim_ss = (exp_ss_sim - 0.01)/sd_ss_sim
+  sharpe_sim_ss
+  sharpe_sim_noss = (exp_noss_sim - 0.01)/sd_noss_sim
+  sharpe_sim_noss
+  
+  #constant correlation
+  sharpe_corr_ss = (corr_r_opt - 0.01)/corr_sd_opt
+  sharpe_corr_ss
+  sharpe_corr_noss = (corr_r_opt_no - 0.01)/corr_sd_opt_no
+  sharpe_corr_noss
+  
+  #multigroup
+  sharpe_multi = (r_multi_x - 0.01)/sd_multi_x
+  sharpe_multi
+  
+  #equal portfolio
+  sharpe_equal = (exp_equalp - 0.01)/std_p
+  sharpe_equal
+  
+  #markowitz
+  sharpe_markowitz = (exp_markowitz - 0.01)/sd_markowitz
+  sharpe_markowitz
+  
+#Differential Excess Return
+  #single index
+  diff_sim_ss = exp_ss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_ss_sim))
+  diff_sim_ss
+  diff_sim_noss = exp_noss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim))
+  diff_sim_noss
+  
+  #constant correlation
+  diff_corr_ss = corr_r_opt - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt))
+  diff_corr_ss
+  diff_corr_noss = corr_r_opt_no - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt_no))
+  diff_corr_noss
+  
+  #multigroup
+  diff_multi = r_multi_x - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_multi_x))
+  diff_multi
+  
+  #equal portfolio
+  diff_equal = exp_equalp - (0.01 + ((means[1] - 0.01)/stdev[1])*(std_p))
+  diff_equal
+  
+  #markowitz
+  diff_markowitz = exp_markowitz - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_markowitz))
+  diff_markowitz
+  
+#Treynor Measure
+  #single index
+    beta_sim_ss <- t(beta[sim_table[,1]]) %*% x_sim_ss 
+    treynor_sim_ss = (exp_ss_sim - 0.01)/beta_sim_ss
+    treynor_sim_ss
+    
+    beta_sim_noss <- t(beta[sim_table[,1]][1:length(x_sim_no_ss)]) %*% x_sim_no_ss 
+    treynor_sim_noss = (exp_noss_sim - 0.01)/beta_sim_noss
+    treynor_sim_noss
+    
+  #Constant Correlation
+    beta_corr_ss <- t(beta[order_return_rho1[,1]]) %*% corr_x_ss 
+    treynor_corr_ss = (corr_r_opt - 0.01)/beta_corr_ss
+    treynor_corr_ss
+    
+    beta_corr_noss <- t(beta[order_return_rho1[,1]][1:length(corr_x_no)]) %*% corr_x_no 
+    treynor_corr_noss = (corr_r_opt_no - 0.01)/beta_corr_noss
+    treynor_corr_noss
+    
+  #Multi
+    beta_multi <- t(beta) %*% multi_x 
+    treynor_multi = (r_multi_x - 0.01)/beta_multi
+    treynor_multi
+    
+  #equal portoflio
+    beta_equal <- t(beta) %*% rep(1/30,30) 
+    treynor_equal = (exp_equalp - 0.01)/beta_equal
+    treynor_equal
+  
+  #Markowitz
+    beta_markowitz <- t(beta) %*% xa
+    treynor_markowitz = (exp_markowitz - 0.01)/beta_markowitz
+    treynor_markowitz
+    
+#Jenson's Index
+    #Single Index
+    jenson_sim_ss = exp_ss_sim - (0.01 + (means[1] - 0.01)*beta_sim_ss)
+    jenson_sim_ss
+    jenson_sim_noss = exp_noss_sim - (0.01 + (means[1] - 0.01)*beta_sim_noss)
+    jenson_sim_noss
+    
+    #Constant Correlation
+    jenson_corr_ss = corr_r_opt - (0.01 + (means[1] - 0.01)*beta_corr_ss)
+    jenson_corr_ss
+    jenson_corr_noss = corr_r_opt_no - (0.01 + (means[1] - 0.01)*beta_corr_noss)
+    jenson_corr_noss
+    
+    #Multi
+    jenson_multi = r_multi_x - (0.01 + (means[1] - 0.01)*beta_multi)
+    jenson_multi
+    
+    #Equal Portfolio
+    jenson_equal = exp_equalp - (0.01 + (means[1] - 0.01)*beta_equal)
+    jenson_equal
+    
+    #Markowitz
+    jenson_markowitz = exp_markowitz - (0.01 + (means[1] - 0.01)*beta_markowitz)
+    jenson_markowitz
+    
+    
