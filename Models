@@ -1,0 +1,812 @@
+#(B)
+
+a <- read.csv("~/Desktop/traindata.csv")
+View(a)
+returns <- (a[-1,2:ncol(a)]-a[-nrow(a),2:ncol(a)])/a[-nrow(a),2:ncol(a)]  #Converting adjusted close prices to returns for all 31 assets
+
+
+#(C)Computing the means of the 31 assets, the standard deviations, and the variance covariance matrix:
+
+library(ggplot2)
+#Mean vector of all 31 assets:
+means <- colMeans(returns)  
+
+#Variance covariance matrix:
+covmat <- cov(returns)
+View(covmat)
+
+#Vector of variances:
+variances <- diag(covmat)
+
+#Vector of standard deviations:
+stdev <- diag(covmat)^.5
+
+ggplot() +
+  geom_point(aes(x = stdev, y = means), pch = 19) +
+  xlab("Risk(standard Deviation") +
+  ylab("Expected Return")
+
+#Equal Allocation portfolio of 30 assets
+x <- as.matrix(rep(1/30, 30))
+
+exp_equalp <- t(x) %*% means[-1] 
+covmat_p <- covmat[-1,-1]
+var_equalp <- t(x) %*% covmat_p %*% x
+std_p <- sqrt(var_equalp)
+
+#adding the mean and standard deviation of the portfolio on the plot of (c)
+ggplot() +
+  geom_point(aes(x = stdev, y = means), pch = 19) +
+  geom_point(aes(x = std_p, y = exp_equalp), color = "red", size = 3, shape = 18) +
+  xlab("Risk(standard Deviation") +
+  ylab("Expected Return")
+
+#Minimum Risk Portfolio
+ones <- as.matrix(rep(1, 30))
+inverse_var <- solve(covmat_p)
+exp_mp <- (t(ones) %*% inverse_var %*% means[-1])/(t(ones) %*% inverse_var %*% ones) 
+var_mp <- 1/(t(ones) %*% inverse_var %*% ones) 
+std_mp <- sqrt(var_mp)
+
+plot_eq <-  ggplot() +
+  geom_point(aes(x = stdev, y = means), pch = 19) +
+  geom_point(aes(x = std_p, y = exp_equalp), color = "red", size = 3, shape = 18) +
+  geom_point(aes(x = std_mp, y = exp_mp), color = "blue", size = 3, shape = 18) +
+  xlab("Risk(standard Deviation") +
+  ylab("Expected Return")
+
+plot_eq
+```
+
+###########################################################################
+#Update 2:
+
+inv <- solve(covmat)
+temp <- 0
+for(i in 1:length(means)){
+  for(j in 1:length(means)){
+    temp <- temp + inv[i, j] * means[j]
+  }
+}
+A <- temp
+
+temp <- 0
+for(i in 1:length(means)){
+  for(j in 1:length(means)){
+    temp <- temp + inv[i, j] * means[i] * means[j]
+  }
+}
+B <- temp
+
+temp <- 0
+for(i in 1:length(means)){
+  for(j in 1:length(means)){
+    temp <- temp + inv[i, j]
+  } 
+}
+C <- temp
+
+temp <- 0
+D <- B*C - A^2
+
+
+plot(0, A/C, main = "Portfolio possibilities curve", xlab = "Risk (standard deviation)",
+     ylab = "Expected Return", type = "n",
+     xlim = c(-12*sqrt(1/C), 12*sqrt(1/C)), 
+     ylim = c(-12*A/C, 12*A/C))
+
+#Plot center of the hyperbola:
+points(0, A/C, pch = 19)
+
+#Plot transverse and conjugate axes:
+abline(v = 0) #Also this is the y-axis.
+abline(h = A/C)
+
+#Plot the x-axis:
+abline(h = 0)
+
+#Plot the minimum risk portfolio:
+points(sqrt(1/C), A/C, pch=19)
+
+#Efficient frontier:
+minvar <- 1/C
+minE <- A/C
+sdeff <- seq((minvar)^0.5, 1, by = 0.0001)
+options(warn = -1)
+y1 <- (A + sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+y2 <- (A - sqrt(D*(C*sdeff^2 - 1)))*(1/C) 
+options(warn = 0)
+
+points(sdeff, y1, type = "l")
+points(sdeff, y2, type = "l")
+```
+
+
+#Using two point portfolios
+var_cov <- cov(returns[, 2:31])
+sigma_inv <- solve(var_cov)
+rf1 <- .001
+rf2 <- .013
+ra <- means[2:31] - rf1
+rb <- means[2:31] - rf2
+za <- sigma_inv %*% ra
+xa <- za / sum(za)    
+zb <- sigma_inv %*% rb
+xb <- zb / sum(zb)
+
+ra_bar <- t(xa) %*% means[2:31]
+rb_bar <- t(xb) %*% means[2:31]
+var_a <- t(xa) %*% var_cov %*% xa
+var_b <- t(xb) %*% var_cov %*% xb
+cov_ab <- t(xa) %*% var_cov %*% xb
+sd_a <- sqrt(var_a)
+sd_b <- sqrt(var_b)
+cov_ab_mat <- matrix(c(var_a, cov_ab, cov_ab, var_b), byrow = T, ncol = 2)
+
+x1 <- seq(-3, 5, 0.001)
+x2 <- 1-x1
+
+sigma_p <- sqrt(x1^2 * var_a + x2^2 * var_b + 2 * x1 * x2 * cov_ab)
+rp_bar <- x1 * ra_bar + x2 * rb_bar
+two_point_df <- data.frame("Standard.Deviation" = sigma_p, "Expected.Return" = rp_bar)
+two_point_plot <- plot_eq + geom_path(data = two_point_df, aes( x = Standard.Deviation, y = Expected.Return), colour = 'purple')
+two_point_plot <- two_point_plot + geom_abline(intercept = rf1, slope = ((ra_bar - rf1) / sd_a), colour = 'green')
+two_point_plot  <- two_point_plot + geom_point(data= data.frame(ra_bar, sd_a), x = sd_a, y = ra_bar, colour = 'navy') + geom_text(data = data.frame(ra_bar, sd_a), aes(x = sd_a, y = ra_bar), label = "Point of Intersection", hjust = -.07) +  xlim(0, .125) + ylim(0,.055)
+two_point_plot
+
+
+
+#####################################################################################
+#Update3:
+#1.
+
+alpha <- rep(0, 30)
+beta <- rep(0,30)
+var_all <- rep(0,30)
+
+for(i in 2:31){
+  q <- lm(data = returns, formula=returns[,i] ~ returns[,1])
+  alpha[i-1] <- q$coefficients[1] 
+  beta[i-1] <- q$coefficients[2] 
+  var_all[i-1] <- summary(q)$sigma^2
+} 
+
+variance_m <- variances[[1]]
+
+
+#2. Variance Covariance Matrix 
+
+covar = matrix(0, nrow = 30, ncol = 30)
+for(i in 1:30)
+{
+  for(j in 1:30)
+  {
+    if(i == j)
+      covar[i,j] = ((beta[i]^2)*(variance_m^2) + var_all[i]^2)
+    
+    else
+      covar[i,j] = ((beta[i])*(beta[j])*(variance_m^2))
+  }
+}
+
+
+
+#3.
+
+
+ˆ#Convert adjusted close prices into returns:
+#Imported training data set (2010- 2015) (a1) and (2015 - 2018) (a2)
+a1 <- read.csv("~/Desktop/traindata1.csv")
+r1 <- (a1[-1,3:ncol(a1)]-a1[-nrow(a1),3:ncol(a1)])/a1[-nrow(a1),3:ncol(a1)]
+
+a2 <- read.csv("~/Desktop/traindata2.csv")
+r2 <- (a2[-1,3:ncol(a2)]-a2[-nrow(a2),3:ncol(a2)])/a2[-nrow(a2),3:ncol(a2)]
+
+
+#Compute covariance matrices:
+cov1 <- cov(r1)
+cov2 <- cov(r2)
+
+#Compute betas:
+beta1 <- cov1[1, 2:ncol(cov1)]/cov1[1,1]
+beta2 <- cov2[1, 2:ncol(cov2)]/cov2[1,1]
+
+
+#=====================================================
+q <- lm(beta2 ~ beta1)
+
+#Adjust betas using Blume's technique:
+beta3_adj_blume <- q$coef[1] + q$coef[2]*beta2
+
+#=====================================================
+
+#Adjust betas in 2010-15 using Vasicek's technique:
+beta22 <- rep(0, ncol(r1)-1)
+var_beta2 <- rep(0,ncol(r1)-1)
+
+for(i in 2:ncol(r1)){
+  q <- lm(data=r1, formula=r1[,i] ~ r1[,1])
+  beta22[i-1] <- q$coefficients[2] 
+  var_beta2[i-1] <- vcov(q)[2,2]
+} 
+
+#Adjust betas using Vasicek's technique:
+beta2_adj_vas <- rep(0, 30)
+
+for(i in 1:30){
+  beta2_adj_vas[i] <- (var_beta2[i]*mean(beta22)/(var(beta22)+var_beta2[i])) + var(beta22)*beta22[i]/(var(beta22)+var_beta2[i])
+} 
+
+
+#Compute PRESS using Vasicek's adjusted betas as forecasts for 2015-18:
+PRESS3 <- sum((beta2 - beta2_adj_vas)^2)
+
+
+###############################################################################
+#Update 4:
+# (a)
+
+#Single Index Model
+x <- rep(0, 30)
+xx <- matrix(x, ncol=6, nrow=30)
+stock <- rep(0,30)
+alpha <- rep(0,30)
+beta <- rep(0,30)
+mse <- rep(0,30)
+Rbar <- rep(0,30)
+Ratio <- rep(0,30)
+col1 <- rep(0,30)
+col2 <- rep(0,30)
+col3 <- rep(0,30)
+col4 <- rep(0,30)
+col5 <- rep(0,30)
+
+
+rf <- 0.001
+
+#Perform regression of each stock on the index and record alpha, beta, #sigma_e^2:
+for(i in 2:31){
+  alpha[i-1] <-lm(data = returns, formula=returns[,i] ~ returns[,1])$coefficients[1]
+  beta[i-1] <- lm(data = returns, formula=returns[,i] ~ returns[,1])$coefficients[2]
+  Rbar[i-1] <- alpha[i-1]+beta[i-1]*mean(returns[,1])
+  mse[i-1] <- sum(lm(data = returns, formula=returns[,i] ~ returns[,1])$residuals^2)/(nrow(returns)-2)
+  Ratio[i-1] <- (Rbar[i-1]-rf)/beta[i-1]
+  stock[i-1] <- i-1
+}
+
+#So far we have this table:
+xx <- (cbind(stock,alpha, beta, Rbar, mse, Ratio))
+
+#Order the table based on the excess return to beta ratio:
+order_returns_sim <- xx[order(-Ratio),]
+
+#Create the last 5 columns of the table:
+col1 <- (order_returns_sim[,4]-rf)*order_returns_sim[,3]/order_returns_sim[,5]
+col3 <- order_returns_sim[,3]^2/order_returns_sim[,5]
+for(i in(1:30)) {
+  col2[i] <- sum(col1[1:i])
+  col4[i] <- sum(col3[1:i])
+}
+
+#Compute the Ci (col5):
+for(i in (1:30)) {
+  col5[i] <- var(returns[,1])*col2[i]/(1+var(returns[,1])*col4[i])
+}
+
+sim_table <- cbind(order_returns_sim, col1, col2, col3, col4, col5)
+sim_table
+```
+
+# (b)
+
+#SHORT SALES ALLOWED:
+#Compute the Zi:
+z_short <- (order_returns_sim[,3]/order_returns_sim[,5])*(order_returns_sim[,6]-col5[30])
+
+#Compute the xi:
+x_sim_ss <- z_short/sum(z_short)
+
+no_gspc <- returns[,-1]
+returns_short_order <- no_gspc[order(order_returns_sim[,1])]
+
+exp_ss_sim <- t(x_sim_ss) %*% sim_table[,4] 
+var_ss_sim <- t(x_sim_ss) %*% cov(returns_short_order) %*% x_sim_ss
+sd_ss_sim <- sqrt(var_ss_sim)
+
+#SHORT SALES NOT ALLOWED:
+#First create a matrix up to the maximum of col5:
+sim_table_noss <- sim_table[1:which(col5==max(col5)), ]
+
+#Compute the Zi:
+z_no_short <- (sim_table_noss[,3]/sim_table_noss[,5])*(sim_table_noss[,6]-max(sim_table_noss))
+
+#Compute the xi:
+x_sim_no_ss <- z_no_short/sum(z_no_short)
+returns_sim_noss <- no_gspc[c(sim_table_noss[,1])]
+
+exp_noss_sim <- t(x_sim_no_ss) %*% sim_table[1:length(x_sim_no_ss),4]
+var_noss_sim <- t(x_sim_no_ss) %*% cov(returns_sim_noss) %*% x_sim_no_ss
+sd_noss_sim <- sqrt(var_noss_sim)
+
+with_short_sim  <- two_point_plot + geom_point(data= data.frame(exp_ss_sim, sd_ss_sim), x = exp_ss_sim, y = sd_ss_sim, colour = 'orange') + geom_text(data = data.frame(exp_ss_sim, sd_ss_sim), aes(x = exp_ss_sim, y = sd_ss_sim), label = "Point of Tangency(shorts allowed)")
+two_point_plot
+
+without_short_sim  <- with_short_sim + geom_point(data= data.frame(exp_noss_sim, sd_noss_sim), x = exp_noss_sim, y = sd_noss_sim, colour = 'orange') + geom_text(data = data.frame(exp_noss_sim, sd_noss_sim), aes(x = exp_noss_sim, y = sd_noss_sim), label = "Point of Tangency(shorts not allowed)")
+
+without_short_sim
+
+
+#(c)
+
+rf_seq <- seq(0,2*exp_mp, 0.001)
+exp_no_short <- rep(0,length(rf_seq))
+std_no_short <- rep(0, length(rf_seq))
+
+x_1 <- rep(0, 30)
+xx1 <- matrix(x_1, ncol=6, nrow=30)
+stock1 <- rep(0,30)
+alpha1 <- rep(0,30)
+beta1 <- rep(0,30)
+mse1 <- rep(0,30)
+Rbar1 <- rep(0,30)
+Ratio1 <- rep(0,30)
+col_1 <- rep(0,30)
+col_2 <- rep(0,30)
+col_3 <- rep(0,30)
+col_4 <- rep(0,30)
+col_5 <- rep(0,30)
+
+
+
+for(i in 1:length(rf_seq))
+{
+  for(j in 2:31){
+    alpha1[j-1] <-lm(data = returns, formula=returns[,j] ~ returns[,1])$coefficients[1]
+    beta1[j-1] <- lm(data = returns, formula=returns[,j] ~ returns[,1])$coefficients[2]
+    Rbar1[j-1] <- alpha1[j-1]+beta1[j-1]*mean(returns[,1])
+    mse1[j-1] <- sum(lm(data = returns, formula=returns[,i] ~ returns[,1])$residuals^2)/(nrow(returns)-2)
+    Ratio1[j-1] <- (Rbar1[j-1]-rf_seq[i])/beta1[j-1]
+    stock1[j-1] <- j-1
+  }
+  
+  xx1 <- (cbind(stock1,alpha1, beta1, Rbar1, mse1, Ratio1))
+  
+  #Order the table based on the excess return to beta ratio:
+  aaa1 <- xx1[order(-Ratio1),]
+  
+  #Create the last 5 columns of the table:
+  col_1 <- (aaa1[,4]-rf_seq[i])*aaa1[,3]/aaa1[,5]
+  col_3 <- aaa1[,3]^2/aaa1[,5]
+  for(i in(1:30)) {
+    col_2[i] <- sum(col_1[1:i])
+    col_4[i] <- sum(col_3[1:i])
+  }
+  
+  #Compute the Ci (col5):
+  for(k in (1:30)) {
+    col_5[k] <- var(returns[,1])*col_2[k]/(1+var(returns[,1])*col_4[k])
+  }
+  
+  table3 <- cbind(aaa1, col_1, col_2, col_3, col_4, col_5)
+  table4 <- table3[1:which(col_5==max(col_5)), ]
+  
+  #Compute the Zi:
+  z_no_short1 <- (table4[3]/table4[5])*(table4[6]-max(col_5))
+  
+  #Compute the xi:
+  x_no_short1 <- z_no_short1/sum(z_no_short1)
+  returns_no_short1 <- no_gspc[c(table4[1])]
+  
+  exp_no_short[i] <- t(x_no_short1) %*% table4[2]
+  var_x_no_short1 <- t(x_no_short1) %*% cov(returns_no_short1) %*% x_no_short1
+  std_no_short[i] <- sqrt(var_x_no_short1)
+}
+
+eff_front <- data.frame("Standard_Deviation" = std_no_short, "Expected_Return" = exp_no_short)
+eff_front_plot <- without_short_sim + geom_path(data = eff_front, aes( x = Standard_Deviation, y = Expected_Return), colour = 'purple')
+
+
+######################################################################################
+####Update 5:
+
+#Constant Correlation Model
+rho <- (sum(cor(returns[2:31]))-30)/(30*29)
+
+#Initialize the vectors:
+col1 <- rep(0,30)
+col2 <- rep(0,30)
+col3 <- rep(0,30)
+Rbar <- rep(0,30)
+Rbar_f <- rep(0,30)
+sigma <- rep(0,30)
+Ratio <- rep(0,30)
+
+#Initialize the var-covar matrix:
+y <- rep(0,900)
+mat <- matrix(y, ncol=30, nrow=30)
+R_f <- 0.001
+#Compute necessary quantities:
+for(i in 2:31){
+  Rbar[i-1] <- mean(returns[,i])
+  Rbar_f[i-1] <- Rbar[i-1]-R_f
+  sigma[i-1] <- sd(returns[,i])
+  Ratio[i-1] <- Rbar_f[i-1]/sigma[i-1]
+}
+
+#Initial table:
+xx <- (cbind(Rbar, Rbar_f, sigma, Ratio))
+
+#Order the table based on the excess return to sigma ratio:
+order_return_rho <- xx[order(-Ratio),]
+
+
+#Create the last 3 columns of the table:
+
+for(i in(1:30)) {
+  
+  col1[i] <- rho/(1-rho+i*rho)
+  
+  col2[i] <- sum(order_return_rho[,4][1:i])
+}
+
+#Compute the Ci:
+for(i in (1:30)) {
+  
+  col3[i] <- col1[i]*col2[i]
+  
+}
+
+#Create the entire table until now:
+xxx <- cbind(order_return_rho, col1, col2, col3)
+
+#SHORT SALES ALLOWED:
+#Compute the Zi:
+z <- (1/((1-rho)*xxx[,3]))*(xxx[,4]-xxx[,7][nrow(xxx)])
+
+#Compute the xi:
+corr_x_ss <- z/sum(z)
+
+
+#The final table:
+corr_table <- cbind(xxx, z, corr_x_ss)
+
+#SHORT SALES NOT ALLOWED:
+#Find composition of optimum portfolio when short sales are not allowed:
+corr_no_ss <- corr_table[1:which(corr_table[,7]==max(corr_table[,7])), ]
+corr_z_no <- (1/((1-rho)*corr_no_ss[,3]))*(corr_no_ss[,4]-corr_no_ss[,7][nrow(corr_no_ss)])
+corr_x_no <- corr_z_no/sum(corr_z_no)
+
+#Var-covar matrix based on the constant correlation model:
+for(i in 1:30){
+  
+  for(j in 1:30){
+    
+    if(i==j){
+      mat[i,j]=corr_table[i,3]^2
+    } else
+    {
+      mat[i,j]=rho*corr_table[i,3]*corr_table[j,3]
+    }
+  }
+}
+
+
+#Calculate the expected return and sd of the point of tangency 
+#when short sales allowed
+corr_sd_opt <- (t(corr_x_ss) %*% mat %*% corr_x_ss)^.5
+corr_r_opt <- t(corr_x_ss) %*% corr_table[,1]
+
+
+#Calculate the expected return and sd of the point of tangency 
+#when short sales are not allowed
+corr_sd_opt_no <- (t(corr_x_no) %*% mat[1:which(corr_table[,7]==max(corr_table[,7])),1:which(corr_table[,7]==max(corr_table[,7]))] %*% corr_x_no)^.5
+corr_r_opt_no <- t(corr_x_no) %*% corr_no_ss[,1]
+
+
+#Plot all the stocks and the two tangency points:
+rho_plot_ss  <- two_point_plot + geom_point(data= data.frame(corr_r_opt, corr_sd_opt), x = corr_sd_opt, y = corr_r_opt, colour = 'yellow', pch = 19)
+
+rho_plot <- rho_plot_ss + geom_point(data= data.frame(corr_sd_opt_no, corr_r_opt_no), x = corr_sd_opt_no, y = corr_r_opt_no, colour = 'orange', pch = 19)
+
+
+
+#Multi-Group Model
+finance <- returns[2:7]
+health <- returns[8:13]
+tech <- returns[14:19]
+services <- returns[20:25]
+industry <- returns[26:31]
+
+r11 <- sum(cor(finance, finance) - 6)/30
+r12 <- sum(cor(finance, health))/36
+r13 <- sum(cor(finance, tech))/36
+r14 <- sum(cor(finance, services))/36
+r15 <- sum(cor(finance, industry))/36
+
+r21 <- sum(cor(health, finance))/36
+r22 <- (sum(cor(health, health))-6)/30
+r23 <- sum(cor(health, tech))/36
+r24 <- sum(cor(health, services))/36
+r25 <- sum(cor(health, industry))/36
+
+r31 <- sum(cor(tech, finance))/36
+r32 <- sum(cor(tech, health))/36
+r33 <- (sum(cor(tech, tech)) - 6)/30
+r34 <- sum(cor(tech, services))/36
+r35 <- sum(cor(tech, industry))/36
+
+r41 <- sum(cor(services, finance))/36
+r42 <- sum(cor(services, health))/36
+r43 <- sum(cor(services, tech))/36
+r44 <- (sum(cor(services, services)) - 6)/30
+r45 <- sum(cor(services, industry))/36
+
+r51 <- sum(cor(industry, finance))/36
+r52 <- sum(cor(industry, health))/36
+r53 <- sum(cor(industry, tech))/36
+r54 <- sum(cor(industry, services))/36
+r55 <- (sum(cor(industry, industry)) - 6)/30
+
+b <- c(r11,r12,r13,r14,r15,
+       r22,r21,r23,r24,r25,
+       r31,r32,r33,r34,r35,
+       r41,r42,r43,r44,r45,
+       r51,r52,r53,r54,r55)
+
+corr_avg <- matrix(b, nrow = 5, ncol = 5, byrow = TRUE)
+
+A <- matrix(rep(0,30), nrow = 5, ncol = 5, byrow = TRUE)
+
+for(i in 1:5)
+  for(j in 1:5)
+  {
+    if(i == j)
+      A[i,j] <- 1 + (6*corr_avg[i,j])/(1-corr_avg[i,i])
+    
+    else
+      A[i,j] <- (6*corr_avg[i,j])/(1-corr_avg[i,i])
+  }
+
+C <- matrix(rep(0,5), nrow = 5, ncol = 1, byrow = TRUE)
+v1 <- rep(0,6)
+v2 <- rep(0,6)
+v3 <- rep(0,6)
+v4 <- rep(0,6)
+v5 <- rep(0,6)
+
+for(j in 1:6)
+{
+  v1[j] = (mean(finance[,j]) - 0.01)/(sd(finance[,j])*(1 - corr_avg[1,1]))
+  v2[j] = (mean(health[,j]) - 0.01)/(sd(health[,j])*(1 - corr_avg[2,2]))
+  v3[j] = (mean(tech[,j]) - 0.01)/(sd(tech[,j])*(1 - corr_avg[3,3]))
+  v4[j] = (mean(services[,j]) - 0.01)/(sd(services[,j])*(1 - corr_avg[4,4]))
+  v5[j] = (mean(industry[,j]) - 0.01)/(sd(industry[,j])*(1 - corr_avg[5,5]))
+}
+
+C <- rbind(sum(v1),sum(v2), sum(v3), sum(v4), sum(v5))
+
+Q <- solve(A) %*% C
+c_star <- rep(0,5)
+
+for(j in 1:5)
+{
+  c_star[j] <- corr_avg[j,] %*% Q
+}
+
+c_star1 <- rep(c_star, each = 6)
+
+z <- rep(0,30)
+
+ro <- rep(0,5)
+
+for(j in 1:5)
+  ro[j] <- corr_avg[j,j]
+
+rho1 <- rep(ro, each = 6)
+
+for(i in 1:30)
+  z[i] <- (1/(stdev[[i+1]]*(1-rho1[i])))*(corr_table[i,4]-c_star1[i])
+
+multi_x <- z/sum(z)
+
+sd_multi_x <- (t(multi_x) %*% mat %*% multi_x)^.5
+r_multi_x <- t(multi_x) %*% corr_table[,1]
+
+multi_group_plot  <- rho_plot + geom_point(data= data.frame(sd_multi_x, r_multi_x), x = sd_multi_x, y = r_multi_x, colour = 'green', pch = 19)
+
+
+####################################################################
+#Update 6:
+
+returns_sim <- no_gspc[sim_table[,1]] 
+
+return_sim_ss <- (as.matrix(returns_sim) %*% x_sim_ss)
+return_sim_ss <- append(1,return_sim_ss)
+sim_ss <- cumsum(return_sim_ss)
+
+return_noss_sim <- (as.matrix(returns_sim[1:length(x_sim_no_ss)]) %*% x_sim_no_ss)
+return_noss_sim <- append(1, return_noss_sim)
+sim_noss <- cumsum(return_noss_sim)
+
+one <- seq(1:30)
+xx <- cbind(one, xx)
+order_rho <- xx[order(-Ratio),]
+returns_rho <- no_gspc[order_rho[,1]]
+
+return_ss_corr <- (as.matrix(returns_rho) %*% corr_x_ss)
+return_ss_corr <- append(1, return_ss_corr)
+cor_ss <- cumsum(return_ss_corr)
+
+return_noss_corr <- (as.matrix(returns_rho[1:length(corr_x_no),1]) %*% corr_x_no)
+return_noss_corr <- append(1, return_noss_corr)
+cor_noss <- cumsum(return_noss_corr)
+cor_noss <- cor_noss[1:61]
+
+multi_return <- as.matrix(no_gspc) %*% multi_x
+multi_return <- append(1, multi_return)
+multi <- cumsum(multi_return)
+
+sp500 <- cumsum(c(1, returns[,2]))
+
+equal_portfolio <- cumsum(c(1, as.matrix(no_gspc) %*% rep(1/30, 30)))
+
+ones <- rep(1,30)
+sig_inv <- solve(var(no_gspc))
+sd_markowitz <- sqrt(1/t(ones) %*% sig_inv %*% ones)
+exp_markowitz <- t(ones) %*% sig_inv %*% means[-1] /(t(ones) %*% sig_inv %*% ones)
+
+markowitz_return <- drop(as.matrix(no_gspc) %*% t(ones %*% sig_inv)) / (t(ones) %*% sig_inv %*% ones)
+markowitz_return <- append(1, markowitz_return)
+markowitz <- cumsum(markowitz_return)
+
+type <- c(rep('sim_ss', 61), rep('sim_noss', 61), rep('cor_ss', 61), rep('cor_noss', 61), rep('multi', 61), rep('sp500', 61), rep('equal_portfolio', 61), rep('markowitz',61))
+
+counts <- rep(seq(1:61), 8)
+
+performance_df <- data.frame(returns = c(sim_ss,sim_noss,cor_ss,cor_noss,multi,sp500,equal_portfolio, markowitz), n = counts, type)
+
+performace_plot <- ggplot(data = performance_df, aes(x=n, y=returns, colour = type)) + geom_line(position = 'jitter', size = 1.0, aes(linetype = type)) + theme(legend.text=element_text(size=10), legend.key.size = unit(3, 'line')) + xlab('Index') + ylab('Returns') + ggtitle('Performance of Portfolios Over Time')
+
+performace_plot
+
+
+#Sharpe Ratios
+#single index
+sharpe_sim_ss = (exp_ss_sim - 0.01)/sd_ss_sim
+sharpe_sim_ss
+sharpe_sim_noss = (exp_noss_sim - 0.01)/sd_noss_sim
+sharpe_sim_noss
+
+#constant correlation
+sharpe_corr_ss = (corr_r_opt - 0.01)/corr_sd_opt
+sharpe_corr_ss
+sharpe_corr_noss = (corr_r_opt_no - 0.01)/corr_sd_opt_no
+sharpe_corr_noss
+
+#multigroup
+sharpe_multi = (r_multi_x - 0.01)/sd_multi_x
+sharpe_multi
+
+#equal portfolio
+sharpe_equal = (exp_equalp - 0.01)/std_p
+sharpe_equal
+
+#markowitz
+sharpe_markowitz = (exp_markowitz - 0.01)/sd_markowitz
+sharpe_markowitz
+
+#Differential Excess Return
+#single index
+diff_sim_ss = exp_ss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_ss_sim))
+diff_sim_ss
+diff_sim_noss = exp_noss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim))
+diff_sim_noss
+
+#constant correlation
+diff_corr_ss = corr_r_opt - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt))
+diff_corr_ss
+diff_corr_noss = corr_r_opt_no - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt_no))
+diff_corr_noss
+
+#multigroup
+diff_multi = r_multi_x - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_multi_x))
+diff_multi
+
+#equal portfolio
+diff_equal = exp_equalp - (0.01 + ((means[1] - 0.01)/stdev[1])*(std_p))
+diff_equal
+
+#markowitz
+diff_markowitz = exp_markowitz - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_markowitz))
+diff_markowitz
+
+#Treynor Measure
+#single index
+beta_sim_ss <- t(beta[sim_table[,1]]) %*% x_sim_ss 
+treynor_sim_ss = (exp_ss_sim - 0.01)/beta_sim_ss
+treynor_sim_ss
+
+beta_sim_noss <- t(beta[sim_table[,1]][1:length(x_sim_no_ss)]) %*% x_sim_no_ss 
+treynor_sim_noss = (exp_noss_sim - 0.01)/beta_sim_noss
+treynor_sim_noss
+
+#Constant Correlation
+beta_corr_ss <- t(beta[order_return_rho1[,1]]) %*% corr_x_ss 
+treynor_corr_ss = (corr_r_opt - 0.01)/beta_corr_ss
+treynor_corr_ss
+
+beta_corr_noss <- t(beta[order_return_rho1[,1]][1:length(corr_x_no)]) %*% corr_x_no 
+treynor_corr_noss = (corr_r_opt_no - 0.01)/beta_corr_noss
+treynor_corr_noss
+
+#Multi
+beta_multi <- t(beta) %*% multi_x 
+treynor_multi = (r_multi_x - 0.01)/beta_multi
+treynor_multi
+
+#equal portoflio
+beta_equal <- t(beta) %*% rep(1/30,30) 
+treynor_equal = (exp_equalp - 0.01)/beta_equal
+treynor_equal
+
+#Markowitz
+beta_markowitz <- t(beta) %*% xa
+treynor_markowitz = (exp_markowitz - 0.01)/beta_markowitz
+treynor_markowitz
+
+#Jenson's Index
+#Single Index
+jenson_sim_ss = exp_ss_sim - (0.01 + (means[1] - 0.01)*beta_sim_ss)
+jenson_sim_ss
+jenson_sim_noss = exp_noss_sim - (0.01 + (means[1] - 0.01)*beta_sim_noss)
+jenson_sim_noss
+
+#Constant Correlation
+jenson_corr_ss = corr_r_opt - (0.01 + (means[1] - 0.01)*beta_corr_ss)
+jenson_corr_ss
+jenson_corr_noss = corr_r_opt_no - (0.01 + (means[1] - 0.01)*beta_corr_noss)
+jenson_corr_noss
+
+#Multi
+jenson_multi = r_multi_x - (0.01 + (means[1] - 0.01)*beta_multi)
+jenson_multi
+
+#Equal Portfolio
+jenson_equal = exp_equalp - (0.01 + (means[1] - 0.01)*beta_equal)
+jenson_equal
+
+#Markowitz
+jenson_markowitz = exp_markowitz - (0.01 + (means[1] - 0.01)*beta_markowitz)
+jenson_markowitz
+
+
+#Fama's Decomposition
+#Overall Performance -> Ra_bar - Rf = Ra_bar - Ra'_bar + Ra'_bar - Rf
+sim_noss_dash = 0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim)
+Return_Selectivity = exp_noss_sim - sim_noss_dash
+Return_Risk = sim_noss_dash - 0.01
+
+exp_noss_sim - 0.01 == Return_Selectivity + Return_Risk
+
+library(MASS)
+set.seed(0)
+
+change <- rep(NA,10000)
+df <- var(returns_sim[ ,1:length(x_sim_no_ss)])
+df[df < 0] <- 0
+
+daily_volatility <- sqrt(df) / sqrt(dim(returns_sim)[1])
+
+for(i in 1:10000){
+  samples <- mvrnorm(1, rep(0,length(x_sim_no_ss)), daily_volatility^2)
+  change[i] <- x_sim_no_ss %*% samples
+}
+
+hist(change, breaks = 25)
+
+five_day_delta_p <-5 * change
+
+percent_lost <- quantile(five_day_delta_p,.01)
+
+amount_lost <- percent_lost * 1000000 
+amount_lost
