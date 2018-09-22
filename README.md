@@ -1,5 +1,8 @@
 # Stocks
-Implemented multiple statistical models on 30 stocks from 6 different industries to come up with the minimum risk and optimal portfolios and to forecast betas 
+Implemented multiple statistical models on 30 stocks from 6 different industries to obtain:
+1. Minimum risk portfolio 
+2. Optimal portfolio 
+3. To forecast betas 
 
 # Models implemented:
 1. Equal Allocation Model
