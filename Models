@@ -25,7 +25,9 @@ ggplot() +
   xlab("Risk(standard Deviation") +
   ylab("Expected Return")
 
+#######################
 ###Equal Allocation portfolio of 30 assets###
+#######################
 x <- as.matrix(rep(1/30, 30))
 
 exp_equalp <- t(x) %*% means[-1] 
@@ -40,7 +42,9 @@ ggplot() +
   xlab("Risk(standard Deviation") +
   ylab("Expected Return")
 
+#######################
 ###Minimum Risk Portfolio###
+#######################
 ones <- as.matrix(rep(1, 30))
 inverse_var <- solve(covmat_p)
 exp_mp <- (t(ones) %*% inverse_var %*% means[-1])/(t(ones) %*% inverse_var %*% ones) 
@@ -104,7 +108,9 @@ abline(h = 0)
 #Plot the minimum risk portfolio:
 points(sqrt(1/C), A/C, pch=19)
 
+#######################
 ###Efficient frontier:###
+#######################
 minvar <- 1/C
 minE <- A/C
 sdeff <- seq((minvar)^0.5, 1, by = 0.0001)
@@ -149,88 +155,9 @@ two_point_plot <- two_point_plot + geom_abline(intercept = rf1, slope = ((ra_bar
 two_point_plot  <- two_point_plot + geom_point(data= data.frame(ra_bar, sd_a), x = sd_a, y = ra_bar, colour = 'navy') + geom_text(data = data.frame(ra_bar, sd_a), aes(x = sd_a, y = ra_bar), label = "Point of Intersection", hjust = -.07) +  xlim(0, .125) + ylim(0,.055)
 two_point_plot
 
-
-###Beta Forecasting###
-alpha <- rep(0, 30)
-beta <- rep(0,30)
-var_all <- rep(0,30)
-
-for(i in 2:31){
-  q <- lm(data = returns, formula=returns[,i] ~ returns[,1])
-  alpha[i-1] <- q$coefficients[1] 
-  beta[i-1] <- q$coefficients[2] 
-  var_all[i-1] <- summary(q)$sigma^2
-} 
-
-variance_m <- variances[[1]]
-
-
-###Variance Covariance Matrix###
-
-covar = matrix(0, nrow = 30, ncol = 30)
-for(i in 1:30)
-{
-  for(j in 1:30)
-  {
-    if(i == j)
-      covar[i,j] = ((beta[i]^2)*(variance_m^2) + var_all[i]^2)
-    
-    else
-      covar[i,j] = ((beta[i])*(beta[j])*(variance_m^2))
-  }
-}
-
-
-
-#Convert adjusted close prices into returns:
-#Imported training data set (2010- 2015) (a1) and (2015 - 2018) (a2)
-a1 <- read.csv("~/Desktop/traindata1.csv")
-r1 <- (a1[-1,3:ncol(a1)]-a1[-nrow(a1),3:ncol(a1)])/a1[-nrow(a1),3:ncol(a1)]
-
-a2 <- read.csv("~/Desktop/traindata2.csv")
-r2 <- (a2[-1,3:ncol(a2)]-a2[-nrow(a2),3:ncol(a2)])/a2[-nrow(a2),3:ncol(a2)]
-
-
-#Compute covariance matrices:
-cov1 <- cov(r1)
-cov2 <- cov(r2)
-
-#Compute betas:
-beta1 <- cov1[1, 2:ncol(cov1)]/cov1[1,1]
-beta2 <- cov2[1, 2:ncol(cov2)]/cov2[1,1]
-
-
-#=====================================================
-q <- lm(beta2 ~ beta1)
-
-#Adjust betas using Blume's technique:
-beta3_adj_blume <- q$coef[1] + q$coef[2]*beta2
-
-#=====================================================
-
-#Adjust betas in 2010-15 using Vasicek's technique:
-beta22 <- rep(0, ncol(r1)-1)
-var_beta2 <- rep(0,ncol(r1)-1)
-
-for(i in 2:ncol(r1)){
-  q <- lm(data=r1, formula=r1[,i] ~ r1[,1])
-  beta22[i-1] <- q$coefficients[2] 
-  var_beta2[i-1] <- vcov(q)[2,2]
-} 
-
-#Adjust betas using Vasicek's technique:
-beta2_adj_vas <- rep(0, 30)
-
-for(i in 1:30){
-  beta2_adj_vas[i] <- (var_beta2[i]*mean(beta22)/(var(beta22)+var_beta2[i])) + var(beta22)*beta22[i]/(var(beta22)+var_beta2[i])
-} 
-
-
-#Compute PRESS using Vasicek's adjusted betas as forecasts for 2015-18:
-PRESS3 <- sum((beta2 - beta2_adj_vas)^2)
-
 #######################
 ###Single Index Model###
+#######################
 x <- rep(0, 30)
 xx <- matrix(x, ncol=6, nrow=30)
 stock <- rep(0,30)
@@ -339,7 +266,6 @@ col_4 <- rep(0,30)
 col_5 <- rep(0,30)
 
 
-
 for(i in 1:length(rf_seq))
 {
   for(j in 2:31){
@@ -387,8 +313,9 @@ for(i in 1:length(rf_seq))
 eff_front <- data.frame("Standard_Deviation" = std_no_short, "Expected_Return" = exp_no_short)
 eff_front_plot <- without_short_sim + geom_path(data = eff_front, aes( x = Standard_Deviation, y = Expected_Return), colour = 'purple')
 
-
+#######################
 ###Constant Correlation Model###
+#######################
 
 rho <- (sum(cor(returns[2:31]))-30)/(30*29)
 
@@ -488,9 +415,10 @@ rho_plot_ss  <- two_point_plot + geom_point(data= data.frame(corr_r_opt, corr_sd
 
 rho_plot <- rho_plot_ss + geom_point(data= data.frame(corr_sd_opt_no, corr_r_opt_no), x = corr_sd_opt_no, y = corr_r_opt_no, colour = 'orange', pch = 19)
 
-
-
+#######################
 ###Multi-Group Model###
+#######################
+
 finance <- returns[2:7]
 health <- returns[8:13]
 tech <- returns[14:19]
@@ -594,7 +522,10 @@ r_multi_x <- t(multi_x) %*% corr_table[,1]
 
 multi_group_plot  <- rho_plot + geom_point(data= data.frame(sd_multi_x, r_multi_x), x = sd_multi_x, y = r_multi_x, colour = 'green', pch = 19)
 
+#######################
 ###Performance Plot of all models###
+#######################
+
 returns_sim <- no_gspc[sim_table[,1]] 
 
 return_sim_ss <- (as.matrix(returns_sim) %*% x_sim_ss)
@@ -645,145 +576,3 @@ performance_df <- data.frame(returns = c(sim_ss,sim_noss,cor_ss,cor_noss,multi,s
 performace_plot <- ggplot(data = performance_df, aes(x=n, y=returns, colour = type)) + geom_line(position = 'jitter', size = 1.0, aes(linetype = type)) + theme(legend.text=element_text(size=10), legend.key.size = unit(3, 'line')) + xlab('Index') + ylab('Returns') + ggtitle('Performance of Portfolios Over Time')
 
 performace_plot
-
-
-#Sharpe Ratios
-#single index
-sharpe_sim_ss = (exp_ss_sim - 0.01)/sd_ss_sim
-sharpe_sim_ss
-sharpe_sim_noss = (exp_noss_sim - 0.01)/sd_noss_sim
-sharpe_sim_noss
-
-#constant correlation
-sharpe_corr_ss = (corr_r_opt - 0.01)/corr_sd_opt
-sharpe_corr_ss
-sharpe_corr_noss = (corr_r_opt_no - 0.01)/corr_sd_opt_no
-sharpe_corr_noss
-
-#multigroup
-sharpe_multi = (r_multi_x - 0.01)/sd_multi_x
-sharpe_multi
-
-#equal portfolio
-sharpe_equal = (exp_equalp - 0.01)/std_p
-sharpe_equal
-
-#markowitz
-sharpe_markowitz = (exp_markowitz - 0.01)/sd_markowitz
-sharpe_markowitz
-
-#Differential Excess Return
-#single index
-diff_sim_ss = exp_ss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_ss_sim))
-diff_sim_ss
-diff_sim_noss = exp_noss_sim - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim))
-diff_sim_noss
-
-#constant correlation
-diff_corr_ss = corr_r_opt - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt))
-diff_corr_ss
-diff_corr_noss = corr_r_opt_no - (0.01 + ((means[1] - 0.01)/stdev[1])*(corr_sd_opt_no))
-diff_corr_noss
-
-#multigroup
-diff_multi = r_multi_x - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_multi_x))
-diff_multi
-
-#equal portfolio
-diff_equal = exp_equalp - (0.01 + ((means[1] - 0.01)/stdev[1])*(std_p))
-diff_equal
-
-#markowitz
-diff_markowitz = exp_markowitz - (0.01 + ((means[1] - 0.01)/stdev[1])*(sd_markowitz))
-diff_markowitz
-
-#Treynor Measure
-#single index
-beta_sim_ss <- t(beta[sim_table[,1]]) %*% x_sim_ss 
-treynor_sim_ss = (exp_ss_sim - 0.01)/beta_sim_ss
-treynor_sim_ss
-
-beta_sim_noss <- t(beta[sim_table[,1]][1:length(x_sim_no_ss)]) %*% x_sim_no_ss 
-treynor_sim_noss = (exp_noss_sim - 0.01)/beta_sim_noss
-treynor_sim_noss
-
-#Constant Correlation
-beta_corr_ss <- t(beta[order_return_rho1[,1]]) %*% corr_x_ss 
-treynor_corr_ss = (corr_r_opt - 0.01)/beta_corr_ss
-treynor_corr_ss
-
-beta_corr_noss <- t(beta[order_return_rho1[,1]][1:length(corr_x_no)]) %*% corr_x_no 
-treynor_corr_noss = (corr_r_opt_no - 0.01)/beta_corr_noss
-treynor_corr_noss
-
-#Multi
-beta_multi <- t(beta) %*% multi_x 
-treynor_multi = (r_multi_x - 0.01)/beta_multi
-treynor_multi
-
-#equal portoflio
-beta_equal <- t(beta) %*% rep(1/30,30) 
-treynor_equal = (exp_equalp - 0.01)/beta_equal
-treynor_equal
-
-#Markowitz
-beta_markowitz <- t(beta) %*% xa
-treynor_markowitz = (exp_markowitz - 0.01)/beta_markowitz
-treynor_markowitz
-
-#Jenson's Index
-#Single Index
-jenson_sim_ss = exp_ss_sim - (0.01 + (means[1] - 0.01)*beta_sim_ss)
-jenson_sim_ss
-jenson_sim_noss = exp_noss_sim - (0.01 + (means[1] - 0.01)*beta_sim_noss)
-jenson_sim_noss
-
-#Constant Correlation
-jenson_corr_ss = corr_r_opt - (0.01 + (means[1] - 0.01)*beta_corr_ss)
-jenson_corr_ss
-jenson_corr_noss = corr_r_opt_no - (0.01 + (means[1] - 0.01)*beta_corr_noss)
-jenson_corr_noss
-
-#Multi
-jenson_multi = r_multi_x - (0.01 + (means[1] - 0.01)*beta_multi)
-jenson_multi
-
-#Equal Portfolio
-jenson_equal = exp_equalp - (0.01 + (means[1] - 0.01)*beta_equal)
-jenson_equal
-
-#Markowitz
-jenson_markowitz = exp_markowitz - (0.01 + (means[1] - 0.01)*beta_markowitz)
-jenson_markowitz
-
-
-#Fama's Decomposition
-#Overall Performance -> Ra_bar - Rf = Ra_bar - Ra'_bar + Ra'_bar - Rf
-sim_noss_dash = 0.01 + ((means[1] - 0.01)/stdev[1])*(sd_noss_sim)
-Return_Selectivity = exp_noss_sim - sim_noss_dash
-Return_Risk = sim_noss_dash - 0.01
-
-exp_noss_sim - 0.01 == Return_Selectivity + Return_Risk
-
-library(MASS)
-set.seed(0)
-
-change <- rep(NA,10000)
-df <- var(returns_sim[ ,1:length(x_sim_no_ss)])
-df[df < 0] <- 0
-
-daily_volatility <- sqrt(df) / sqrt(dim(returns_sim)[1])
-
-for(i in 1:10000){
-  samples <- mvrnorm(1, rep(0,length(x_sim_no_ss)), daily_volatility^2)
-  change[i] <- x_sim_no_ss %*% samples
-}
-
-hist(change, breaks = 25)
-
-five_day_delta_p <-5 * change
-
-percent_lost <- quantile(five_day_delta_p,.01)
-
-amount_lost <- percent_lost * 1000000 
-amount_lost
