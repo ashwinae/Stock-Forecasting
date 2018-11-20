@@ -1,12 +1,11 @@
-#(B)
-
+#Read file
 a <- read.csv("~/Desktop/traindata.csv")
 View(a)
-returns <- (a[-1,2:ncol(a)]-a[-nrow(a),2:ncol(a)])/a[-nrow(a),2:ncol(a)]  #Converting adjusted close prices to returns for all 31 assets
+#Converting adjusted close prices to returns for all 31 assets
+returns <- (a[-1,2:ncol(a)]-a[-nrow(a),2:ncol(a)])/a[-nrow(a),2:ncol(a)]  
 
 
-#(C)Computing the means of the 31 assets, the standard deviations, and the variance covariance matrix:
-
+#Computing the means of the 31 assets, the standard deviations, and the variance covariance matrix:
 library(ggplot2)
 #Mean vector of all 31 assets:
 means <- colMeans(returns)  
@@ -26,7 +25,7 @@ ggplot() +
   xlab("Risk(standard Deviation") +
   ylab("Expected Return")
 
-#Equal Allocation portfolio of 30 assets
+###Equal Allocation portfolio of 30 assets###
 x <- as.matrix(rep(1/30, 30))
 
 exp_equalp <- t(x) %*% means[-1] 
@@ -41,7 +40,7 @@ ggplot() +
   xlab("Risk(standard Deviation") +
   ylab("Expected Return")
 
-#Minimum Risk Portfolio
+###Minimum Risk Portfolio###
 ones <- as.matrix(rep(1, 30))
 inverse_var <- solve(covmat_p)
 exp_mp <- (t(ones) %*% inverse_var %*% means[-1])/(t(ones) %*% inverse_var %*% ones) 
@@ -56,11 +55,8 @@ plot_eq <-  ggplot() +
   ylab("Expected Return")
 
 plot_eq
-```
 
-###########################################################################
-#Update 2:
-
+###Plotting portfolio possibilities curve###
 inv <- solve(covmat)
 temp <- 0
 for(i in 1:length(means)){
@@ -108,7 +104,7 @@ abline(h = 0)
 #Plot the minimum risk portfolio:
 points(sqrt(1/C), A/C, pch=19)
 
-#Efficient frontier:
+###Efficient frontier:###
 minvar <- 1/C
 minE <- A/C
 sdeff <- seq((minvar)^0.5, 1, by = 0.0001)
@@ -119,10 +115,9 @@ options(warn = 0)
 
 points(sdeff, y1, type = "l")
 points(sdeff, y2, type = "l")
-```
 
 
-#Using two point portfolios
+###Using two point portfolios###
 var_cov <- cov(returns[, 2:31])
 sigma_inv <- solve(var_cov)
 rf1 <- .001
@@ -155,11 +150,7 @@ two_point_plot  <- two_point_plot + geom_point(data= data.frame(ra_bar, sd_a), x
 two_point_plot
 
 
-
-#####################################################################################
-#Update3:
-#1.
-
+###Beta Forecasting###
 alpha <- rep(0, 30)
 beta <- rep(0,30)
 var_all <- rep(0,30)
@@ -174,7 +165,7 @@ for(i in 2:31){
 variance_m <- variances[[1]]
 
 
-#2. Variance Covariance Matrix 
+###Variance Covariance Matrix###
 
 covar = matrix(0, nrow = 30, ncol = 30)
 for(i in 1:30)
@@ -191,10 +182,7 @@ for(i in 1:30)
 
 
 
-#3.
-
-
-ˆ#Convert adjusted close prices into returns:
+#Convert adjusted close prices into returns:
 #Imported training data set (2010- 2015) (a1) and (2015 - 2018) (a2)
 a1 <- read.csv("~/Desktop/traindata1.csv")
 r1 <- (a1[-1,3:ncol(a1)]-a1[-nrow(a1),3:ncol(a1)])/a1[-nrow(a1),3:ncol(a1)]
@@ -241,12 +229,8 @@ for(i in 1:30){
 #Compute PRESS using Vasicek's adjusted betas as forecasts for 2015-18:
 PRESS3 <- sum((beta2 - beta2_adj_vas)^2)
 
-
-###############################################################################
-#Update 4:
-# (a)
-
-#Single Index Model
+#######################
+###Single Index Model###
 x <- rep(0, 30)
 xx <- matrix(x, ncol=6, nrow=30)
 stock <- rep(0,30)
@@ -297,9 +281,7 @@ sim_table <- cbind(order_returns_sim, col1, col2, col3, col4, col5)
 sim_table
 ```
 
-# (b)
-
-#SHORT SALES ALLOWED:
+##SHORT SALES ALLOWED:##
 #Compute the Zi:
 z_short <- (order_returns_sim[,3]/order_returns_sim[,5])*(order_returns_sim[,6]-col5[30])
 
@@ -406,10 +388,8 @@ eff_front <- data.frame("Standard_Deviation" = std_no_short, "Expected_Return" =
 eff_front_plot <- without_short_sim + geom_path(data = eff_front, aes( x = Standard_Deviation, y = Expected_Return), colour = 'purple')
 
 
-######################################################################################
-####Update 5:
+###Constant Correlation Model###
 
-#Constant Correlation Model
 rho <- (sum(cor(returns[2:31]))-30)/(30*29)
 
 #Initialize the vectors:
@@ -510,7 +490,7 @@ rho_plot <- rho_plot_ss + geom_point(data= data.frame(corr_sd_opt_no, corr_r_opt
 
 
 
-#Multi-Group Model
+###Multi-Group Model###
 finance <- returns[2:7]
 health <- returns[8:13]
 tech <- returns[14:19]
@@ -614,10 +594,7 @@ r_multi_x <- t(multi_x) %*% corr_table[,1]
 
 multi_group_plot  <- rho_plot + geom_point(data= data.frame(sd_multi_x, r_multi_x), x = sd_multi_x, y = r_multi_x, colour = 'green', pch = 19)
 
-
-####################################################################
-#Update 6:
-
+###Performance Plot of all models###
 returns_sim <- no_gspc[sim_table[,1]] 
 
 return_sim_ss <- (as.matrix(returns_sim) %*% x_sim_ss)
