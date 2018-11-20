@@ -1,6 +1,7 @@
 library(MASS)
 set.seed(0)
 
+#returns_sim = returns from single index model (from models)
 change <- rep(NA,10000)
 df <- var(returns_sim[ ,1:length(x_sim_no_ss)])
 df[df < 0] <- 0
